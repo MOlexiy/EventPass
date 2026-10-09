@@ -4,9 +4,9 @@
   "buildCommand": "npm run build-only",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://eventpass-api.onrender.com/api/:path*" },
-    { "source": "/sanctum/:path*", "destination": "https://eventpass-api.onrender.com/sanctum/:path*" },
-    { "source": "/auth/google/:path*", "destination": "https://eventpass-api.onrender.com/auth/google/:path*" },
+    { "source": "/api/:path*", "destination": "https://eventpass-api-xl0y.onrender.com/api/:path*" },
+    { "source": "/sanctum/:path*", "destination": "https://eventpass-api-xl0y.onrender.com/sanctum/:path*" },
+    { "source": "/auth/google/:path*", "destination": "https://eventpass-api-xl0y.onrender.com/auth/google/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
