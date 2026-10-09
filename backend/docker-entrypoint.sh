@@ -1,12 +1,28 @@
 #!/bin/sh
-# Prepares the app on first start, then runs the given command.
+# Prepares the app on container start, then runs the given command.
 set -e
 
-if [ ! -f .env ]; then
-    cp .env.example .env
-fi
+# `php artisan serve` passes only a few variables (APP_ENV, PATH, ...) to the
+# PHP server process it spawns, so settings from docker-compose would be lost.
+# Write them into the container's own .env, which that process reads.
+php -r '
+$prefixes = ["APP_", "DB_", "REDIS_", "CACHE_", "QUEUE_", "SESSION_", "MAIL_", "SANCTUM_",
+    "FRONTEND_", "PAYMENT_", "WEBHOOK_", "ORDER_", "LIQPAY_", "STRIPE_", "GOOGLE_", "LOG_"];
+$lines = [];
+foreach (getenv() as $key => $value) {
+    foreach ($prefixes as $prefix) {
+        if (str_starts_with($key, $prefix)) {
+            $lines[] = $key."=\"".addcslashes($value, "\"\\")."\"";
+            break;
+        }
+    }
+}
+sort($lines);
+file_put_contents(".env", implode(PHP_EOL, $lines).PHP_EOL);
+'
 
-if [ -z "$APP_KEY" ] && ! grep -q "^APP_KEY=base64" .env; then
+if ! grep -q '^APP_KEY="base64' .env; then
+    echo 'APP_KEY=' >> .env
     php artisan key:generate --force
 fi
 
