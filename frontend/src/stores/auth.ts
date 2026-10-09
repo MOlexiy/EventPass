@@ -16,7 +16,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** Restores the session on page load; the router waits for it. */
   function init(): Promise<void> {
-    loading ??= fetchUser()
+    loading ??= fetchUser().catch((error) => {
+      loading = null // API unreachable: try again on the next navigation
+      throw error
+    })
     return loading
   }
 
@@ -24,8 +27,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       user.value = await authApi.me()
     } catch (error) {
-      if (statusOf(error) !== 401) throw error
       user.value = null
+      if (statusOf(error) !== 401) throw error
     }
   }
 

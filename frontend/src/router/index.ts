@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import EventsView from '@/views/EventsView.vue'
 
 declare module 'vue-router' {
@@ -115,7 +116,13 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
-  await auth.init()
+  try {
+    await auth.init()
+  } catch {
+    // Don't block the app when the API is down: public pages still render,
+    // and protected ones fall through to the login redirect below.
+    useToastStore().error('The API is not responding. Is the backend running?')
+  }
 
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
