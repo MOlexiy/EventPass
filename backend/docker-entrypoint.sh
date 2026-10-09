@@ -35,4 +35,11 @@ if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     php artisan db:seed --force
 fi
 
+# Single-container hosting (e.g. Render free tier): run the queue worker and
+# the scheduler in the background next to the web server.
+if [ "${RUN_WORKERS:-false}" = "true" ]; then
+    php artisan queue:work --tries=3 --sleep=3 &
+    php artisan schedule:work &
+fi
+
 exec "$@"

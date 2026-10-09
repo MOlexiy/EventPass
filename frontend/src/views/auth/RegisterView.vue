@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { errorMessage, fieldErrors } from '@/api/http'
 import GoogleButton from '@/components/GoogleButton.vue'
+import { googleSignInEnabled } from '@/utils/features'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 
@@ -108,8 +109,10 @@ async function submit() {
         </button>
       </form>
 
-      <div class="divider">or</div>
-      <GoogleButton />
+      <template v-if="googleSignInEnabled">
+        <div class="divider">or</div>
+        <GoogleButton />
+      </template>
 
       <p class="muted switch">
         Have an account?

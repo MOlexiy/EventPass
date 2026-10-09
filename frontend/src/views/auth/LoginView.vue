@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { errorMessage, fieldErrors } from '@/api/http'
 import GoogleButton from '@/components/GoogleButton.vue'
+import { googleSignInEnabled } from '@/utils/features'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -87,8 +88,10 @@ function useDemo(email: string) {
         </button>
       </form>
 
-      <div class="divider">or</div>
-      <GoogleButton />
+      <template v-if="googleSignInEnabled">
+        <div class="divider">or</div>
+        <GoogleButton />
+      </template>
 
       <p class="muted small switch">
         New here?

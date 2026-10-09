@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Sanctum: requests from the SPA domain get session + CSRF protection.
         $middleware->statefulApi();
+        // Behind a hosting proxy (Render, Vercel rewrites) trust X-Forwarded-* so
+        // URLs and secure cookies use https.
+        $middleware->trustProxies(at: '*');
         $middleware->alias(['organizer' => EnsureUserIsOrganizer::class]);
         // Guests hitting auth-only routes get 401 JSON, not a redirect.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->expectsJson() ? null : config('payments.frontend_url').'/login');

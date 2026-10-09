@@ -1,0 +1,52 @@
+# Render Blueprint for the EventPass API (Dashboard → New → Blueprint → this repo).
+# The Vue SPA is deployed separately on Vercel (root directory: frontend) and
+# proxies /api, /sanctum and /auth/google here, so cookies stay first-party.
+# The database is PostgreSQL on Neon: paste its connection string into DB_URL.
+services:
+  - type: web
+    name: eventpass-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY            # php artisan key:generate --show
+        sync: false
+      - key: APP_URL            # https://<your-vercel-domain>
+        sync: false
+      - key: FRONTEND_URL       # https://<your-vercel-domain>
+        sync: false
+      - key: SANCTUM_STATEFUL_DOMAINS   # <your-vercel-domain> (no https://)
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL             # Neon connection string (?sslmode=require)
+        sync: false
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: CACHE_STORE      # file, not database: `migrate --isolated` needs a lock before the cache tables exist
+        value: file
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: MAIL_MAILER
+        value: log
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: PAYMENT_GATEWAYS
+        value: fake
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: RUN_WORKERS
+        value: "true"
+      - key: PHP_CLI_SERVER_WORKERS
+        value: "4"
