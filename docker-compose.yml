@@ -1,0 +1,105 @@
+# Local development stack: docker compose up --build
+# SPA http://localhost:5173 · API http://localhost:8000 · Mailpit http://localhost:8025
+
+x-backend: &backend
+  build: ./backend
+  restart: unless-stopped
+  environment: &backend-env
+    APP_ENV: local
+    APP_DEBUG: "true"
+    # Development-only key shared by api/queue/scheduler so signed links and
+    # encrypted payloads match across containers. Never reuse it in production.
+    APP_KEY: base64:spFIEmYs3HaPG5WnUzqTZVypJ05QxpXFRp1ONZ/oI/I=
+    APP_URL: http://localhost:8000
+    FRONTEND_URL: http://localhost:5173
+    SESSION_DOMAIN: "null"
+    SANCTUM_STATEFUL_DOMAINS: localhost:5173,127.0.0.1:5173
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: eventpass
+    DB_USERNAME: eventpass
+    DB_PASSWORD: secret
+    REDIS_CLIENT: predis
+    REDIS_HOST: redis
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: redis
+    MAIL_MAILER: smtp
+    MAIL_HOST: mailpit
+    MAIL_PORT: 1025
+    # Values below come from ./.env (copy .env.example); all optional.
+    PAYMENT_GATEWAYS: ${PAYMENT_GATEWAYS:-fake}
+    WEBHOOK_BASE_URL: ${WEBHOOK_BASE_URL:-http://localhost:8000}
+    LIQPAY_PUBLIC_KEY: ${LIQPAY_PUBLIC_KEY:-}
+    LIQPAY_PRIVATE_KEY: ${LIQPAY_PRIVATE_KEY:-}
+    LIQPAY_SANDBOX: ${LIQPAY_SANDBOX:-true}
+    STRIPE_SECRET: ${STRIPE_SECRET:-}
+    STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  api:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "true"
+      PHP_CLI_SERVER_WORKERS: 4
+    ports:
+      - "8000:8000"
+
+  queue:
+    <<: *backend
+    command: ["php", "artisan", "queue:work", "--tries=3", "--sleep=1"]
+
+  scheduler:
+    <<: *backend
+    command: ["php", "artisan", "schedule:work"]
+
+  frontend:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      API_PROXY_TARGET: http://api:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: eventpass
+      POSTGRES_USER: eventpass
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventpass -d eventpass"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+
+volumes:
+  pgdata:
+  frontend_node_modules:
